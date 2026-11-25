@@ -13,11 +13,11 @@ function group(p){const id=p&&p.EID_LINIJA;return codes[String(attr(p))]||codes[
 let layer;
 btn.onclick=async()=>{btn.disabled=true;out.textContent='Nalagam javne podatke GURS ...';const controller=new AbortController();const timer=setTimeout(()=>controller.abort(),25000);try{
 const c=map.getCenter(),sw=proj4('EPSG:4326','EPSG:3794',[c.lng-.01,c.lat-.01]),ne=proj4('EPSG:4326','EPSG:3794',[c.lng+.01,c.lat+.01]);
-const q=new URLSearchParams({SERVICE:'WFS',VERSION:'2.0.0',REQUEST:'GetFeature',TYPENAMES:'SI.GURS.KGI:LINIJE_ELEKTRICNA_ENERGIJA_G',OUTPUTFORMAT:'application/json',SRSNAME:'EPSG:4326',BBOX:[...sw,...ne,'EPSG:3794'].join(','),COUNT:'2000'});
-const r=await fetch('https://ipi.eprostor.gov.si/wfs-si-gurs-kgi/wfs?'+q,{signal:controller.signal});if(!r.ok)throw Error('HTTP '+r.status);const d=await r.json();if(d.type!=='FeatureCollection'||!Array.isArray(d.features))throw Error('Ni veljaven GeoJSON');
+const q='SERVICE=WFS&VERSION=2.0.0&REQUEST=GetFeature&TYPENAMES='+encodeURIComponent('SI.GURS.KGI:LINIJE_ELEKTRICNA_ENERGIJA_G')+'&OUTPUTFORMAT='+encodeURIComponent('application/json')+'&SRSNAME=EPSG%3A4326&BBOX='+encodeURIComponent([...sw,...ne,'EPSG:3794'].join(','));
+const r=await fetch('https://ipi.eprostor.gov.si/wfs-si-gurs-kgi/wfs?'+q,{signal:controller.signal});if(!r.ok)throw Error('HTTP '+r.status+' — '+(await r.text()).slice(0,1500));const d=await r.json();if(d.type!=='FeatureCollection'||!Array.isArray(d.features))throw Error('Ni veljaven GeoJSON');
 const counts={VN:0,SN:0,NN:0,unknown:0},raw={},keys=new Set();let present=0;
 for(const f of d.features){const p=f.properties||{};Object.keys(p).forEach(k=>keys.add(k));const v=attr(p);if(v!==null&&v!==undefined&&v!=='')present++;const k=String(v);raw[k]=(raw[k]||0)+1;counts[group(p)]++}
 if(layer)map.removeLayer(layer);layer=L.geoJSON(d,{style:f=>({color:colors[group(f.properties)],weight:3}),onEachFeature:(f,l)=>{const n=document.createElement('pre');n.textContent=JSON.stringify(f.properties,null,2);l.bindPopup(n)}}).addTo(map);
-out.textContent=JSON.stringify({vrnjeni_vodi:d.features.length,numberMatched:d.numberMatched??null,ATR2_izpolnjen:present,uvozenih_identifikatorjev:imported.size,poskusna_razvrstitev:counts,surove_vrednosti_ATR2:raw,atributi:[...keys],opomba:'Največ 2000 objektov. Šifrant je treba potrditi pred uporabo v glavni aplikaciji.'},null,2);
+out.textContent=JSON.stringify({vrnjeni_vodi:d.features.length,numberMatched:d.numberMatched??null,ATR2_izpolnjen:present,uvozenih_identifikatorjev:imported.size,poskusna_razvrstitev:counts,surove_vrednosti_ATR2:raw,atributi:[...keys],opomba:'Šifrant je treba potrditi pred uporabo v glavni aplikaciji.'},null,2);
 }catch(e){out.textContent='Test ni uspel: '+e.message+'. To ne pomeni, da podatkov ni.'}finally{clearTimeout(timer);btn.disabled=false}};
 </script></html>
